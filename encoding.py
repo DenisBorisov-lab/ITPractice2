@@ -1,16 +1,48 @@
 from math import *
 
+
 def encode(file_name: str):
     text = read_file(file_name)
-    count_words(text)
+    count_words(file_name, text)
 
 
 def read_file(file_name: str):
-    file = open(file_name, 'r')
+    file = open(file_name, 'r', encoding="utf8")
     return list(file.read())
 
 
-def count_words(text):
+def get_information(dictionary: dict):
+    information = []
+    keys = dictionary.keys()
+    for key in keys:
+        information.append(ord(key).to_bytes(2, "little"))
+        information.append(dictionary[key].encode("utf-8"))
+        information.append(ord("$").to_bytes(1, "little"))
+    return information
+
+
+def to_binary_view(l: int, number: float):
+    counter = 0
+    result = ""
+    while counter != l and number != 0:
+        number *= 2
+        result += str(int(number))
+        number -= int(number)
+        counter += 1
+    return result
+
+
+def to_bytes(binary_string: str):
+    byte_array = []
+    counter = 0
+    for i in range(len(binary_string) // 8):
+        number = int(binary_string[counter:counter + 8], 2)
+        counter += 8
+        byte_array.append(number)
+    return bytes(byte_array)
+
+
+def count_words(file_name: str, text):
     global variations
     dictionary = {}
     amount = 0
@@ -22,13 +54,13 @@ def count_words(text):
             dictionary[letter] = 1
 
     keys = dictionary.keys()
-    lenght = len(keys)
+    length = len(keys)
     for key in keys:
         dictionary[key] /= amount
 
     sorted_array = []
     sorted_letter_array = []
-    while len(sorted_letter_array) != lenght:
+    while len(sorted_letter_array) != length:
 
         max_value = -1
         max_letter = ""
@@ -49,6 +81,21 @@ def count_words(text):
         for j in range(0, i):
             n += sorted_array[j]
         summary.append(n)
-    print(summary)
 
+    binary_dictionary = {sorted_letter_array[0]: str(summary[0]) * variations[0]}
+    for i in range(1, len(summary)):
+        binary_dictionary[sorted_letter_array[i]] = to_binary_view(variations[i], summary[i])
 
+    result = ""
+    for i in range(len(text)):
+        result += binary_dictionary[text[i]]
+
+    if len(result) % 8 != 0:
+        result += "1" * (8 - (len(result) % 8))
+
+    end_file = open(file_name[:-4] + ".pumrar", "wb")
+    for item in get_information(binary_dictionary):
+        end_file.write(item)
+    end_file.write("|".encode("utf-8"))
+    end_file.write(to_bytes(result))
+    end_file.close()
