@@ -7,7 +7,7 @@ def encode(file_name: str):
 
 
 def read_file(file_name: str):
-    file = open(file_name, 'r', encoding="utf8")
+    file = open(file_name, 'r', encoding="utf8", newline='\n')
     return list(file.read())
 
 
@@ -15,9 +15,9 @@ def get_information(dictionary: dict):
     information = []
     keys = dictionary.keys()
     for key in keys:
-        information.append(ord(key).to_bytes(2, "little"))
+        information.append(ord(key).to_bytes(4, "little"))
         information.append(dictionary[key].encode("utf-8"))
-        information.append(ord("$").to_bytes(1, "little"))
+        information.append('$$'.encode('utf-8'))
     return information
 
 
@@ -32,14 +32,10 @@ def to_binary_view(l: int, number: float):
     return result
 
 
-def to_bytes(binary_string: str):
-    byte_array = []
-    counter = 0
-    for i in range(len(binary_string) // 8):
-        number = int(binary_string[counter:counter + 8], 2)
-        counter += 8
-        byte_array.append(number)
-    return bytes(byte_array)
+def to_bytes(binary_string: str, file):
+    for i in range(0, len(binary_string), 8):
+        number = int(binary_string[i:i + 8], 2)
+        file.write(number.to_bytes(1, 'little'))
 
 
 def count_words(file_name: str, text):
@@ -91,11 +87,11 @@ def count_words(file_name: str, text):
         result += binary_dictionary[text[i]]
 
     if len(result) % 8 != 0:
-        result += "1" * (8 - (len(result) % 8))
+        result += "0" * (8 - (len(result) % 8))
 
     end_file = open(file_name[:-4] + ".pumrar", "wb")
     for item in get_information(binary_dictionary):
         end_file.write(item)
-    end_file.write("|".encode("utf-8"))
-    end_file.write(to_bytes(result))
+    end_file.write("####".encode("utf-8"))
+    to_bytes(result, end_file)
     end_file.close()
